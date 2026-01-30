@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Casdoor Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 50px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .button { 
+            background: #28a745; 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            display: inline-block; 
+            border-radius: 5px; 
+            margin: 10px 0;
+        }
+        .info { background: #f0f0f0; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        code { background: #e0e0e0; padding: 2px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Casdoor OAuth Login Test</h1>
+        
+        <div class="info">
+            <h3>Configuration:</h3>
+            <p><strong>Client ID:</strong> <code>webapp-client</code></p>
+            <p><strong>Authorization URL:</strong> <code>http://192.168.10.14:8000/login/oauth/authorize</code></p>
+            <p><strong>Callback URL:</strong> <code>http://192.168.10.14:3000/auth/casdoor/callback</code></p>
+        </div>
+
+        <h3>Test Login:</h3>
+        <p>Click the button below to test the Casdoor OAuth flow:</p>
+        
+        <a href="http://192.168.10.14:8000/login/oauth/authorize?response_type=code&client_id=webapp-client&redirect_uri=http://192.168.10.14:3000/auth/casdoor/callback&scope=openid profile email&state=test123" 
+           class="button">🛡️ Login with Casdoor</a>
+
+        <h3>Direct Links:</h3>
+        <ul>
+            <li><a href="http://192.168.10.14:8000">Casdoor Home Page</a></li>
+            <li><a href="http://192.168.10.14:8000/login">Casdoor Login Page</a></li>
+            <li><a href="http://192.168.10.14:8000/signup/built-in">Casdoor Signup Page</a></li>
+        </ul>
+
+        <h3>Test Users:</h3>
+        <ul>
+            <li>Username: <code>admin</code> / Password: <code>123</code></li>
+            <li>Username: <code>testuser</code> / Password: <code>testpass123</code></li>
+        </ul>
+    </div>
+</body>
+</html>

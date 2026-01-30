@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Casdoor Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 50px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .button { 
+            background: #28a745; 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            display: inline-block; 
+            border-radius: 5px; 
+            margin: 10px 0;
+        }
+        .info { background: #f0f0f0; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        code { background: #e0e0e0; padding: 2px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Casdoor OAuth Test</h1>
+        
+        <div class="info">
+            <h3>Using Default App Credentials:</h3>
+            <p><strong>Client ID:</strong> <code>014ae4bd048734ca2dea</code></p>
+            <p><strong>Application:</strong> <code>built-in/app-built-in</code></p>
+        </div>
+
+        <h3>Direct Links to Test:</h3>
+        
+        <h4>1. Direct Casdoor Login Page:</h4>
+        <a href="http://192.168.10.14:8000/login?application=app-built-in" 
+           class="button" target="_blank">🛡️ Casdoor Login Page</a>
+
+        <h4>2. OAuth Authorization (after login):</h4>
+        <a href="http://192.168.10.14:8000/login/oauth/authorize?response_type=code&client_id=014ae4bd048734ca2dea&redirect_uri=http://192.168.10.14:3000/auth/casdoor/callback&scope=openid profile email&state=test123" 
+           class="button">🔐 OAuth Authorize</a>
+
+        <h4>3. Webapp with Updated Credentials:</h4>
+        <a href="http://192.168.10.14:3000" 
+           class="button">🚀 Go to Webapp</a>
+
+        <div class="info">
+            <h3>Login Credentials:</h3>
+            <ul>
+                <li>Username: <code>admin</code> / Password: <code>123</code></li>
+            </ul>
+            
+            <h3>Steps:</h3>
+            <ol>
+                <li>First, click "Casdoor Login Page" and login with admin/123</li>
+                <li>Then click "OAuth Authorize" to test the OAuth flow</li>
+                <li>Or go directly to the webapp and use the Casdoor login button</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

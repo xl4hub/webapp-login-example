@@ -1,0 +1,9 @@
+Web Application with OAuth2 Authentication
+Copyright 2026 [Your Name or Organization]
+
+This product includes software developed for cross-platform deployment
+on x86_64 and ARM64 architectures, with specific optimizations for
+Raspberry Pi systems.
+
+Third-party dependencies are listed in package.json and are subject
+to their own licenses.

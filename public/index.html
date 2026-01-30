@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web App</title>
+    <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">My Web App</h1>
+                </div>
+                <div id="navButtons" class="flex items-center space-x-4">
+                    <!-- Buttons will be added by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Auth Status -->
+        <div id="authStatus"></div>
+
+        <!-- Content Grid -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="card">
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">System Info</h2>
+                <div id="systemInfo" class="text-sm text-gray-600">
+                    <p>Loading...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">Health Status</h2>
+                <div id="healthStatus" class="text-sm text-gray-600">
+                    <p>Checking...</p>
+                </div>
+            </div>
+
+            <div class="card col-span-full">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Protected Content</h2>
+                <div id="itemsList" class="space-y-2">
+                    <p class="text-gray-500">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        class App {
+            constructor() {
+                this.authenticated = false;
+                this.user = null;
+                this.init();
+            }
+
+            async init() {
+                await this.checkAuth();
+                await this.loadData();
+                setInterval(() => this.loadData(), 30000);
+            }
+
+            async checkAuth() {
+                try {
+                    const response = await fetch('/api/me');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.authenticated = true;
+                        this.user = data.user;
+                        this.updateUI();
+                    } else {
+                        this.authenticated = false;
+                        this.user = null;
+                        this.updateUI();
+                    }
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                    this.authenticated = false;
+                    this.updateUI();
+                }
+            }
+
+            updateUI() {
+                const navButtons = document.getElementById('navButtons');
+                const authStatus = document.getElementById('authStatus');
+                
+                if (this.authenticated) {
+                    navButtons.innerHTML = `
+                        <span class="text-gray-700">Welcome, ${this.user.name || this.user.email}!</span>
+                        <a href="/logout" class="btn-primary">Logout</a>
+                    `;
+                    authStatus.innerHTML = '';
+                } else {
+                    navButtons.innerHTML = `
+                        <div class="flex gap-2">
+                            <a href="/auth/logto" class="btn-primary bg-indigo-600 hover:bg-indigo-700">
+                                🔐 Login with Logto
+                            </a>
+                            <a href="/auth/casdoor" class="btn-primary bg-green-600 hover:bg-green-700">
+                                🛡️ Login with Casdoor
+                            </a>
+                        </div>
+                    `;
+                    authStatus.innerHTML = `
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <p class="text-blue-800">Please login to access protected content.</p>
+                            <p class="text-blue-700 text-sm mt-2">Choose your authentication provider above.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            async loadData() {
+                await this.loadSystemInfo();
+                await this.loadHealthStatus();
+                await this.loadItems();
+            }
+
+            async loadSystemInfo() {
+                try {
+                    const response = await fetch('/api/info');
+                    const data = await response.json();
+                    document.getElementById('systemInfo').innerHTML = `
+                        <p><strong>Version:</strong> ${data.version}</p>
+                        <p><strong>Node:</strong> ${data.node}</p>
+                        <p><strong>Platform:</strong> ${data.platform}/${data.arch}</p>
+                        <p><strong>Auth:</strong> ${data.authConfigured ? '✅ Enabled' : '❌ Not configured'}</p>
+                    `;
+                } catch (error) {
+                    console.error('Failed to load system info:', error);
+                }
+            }
+
+            async loadHealthStatus() {
+                try {
+                    const response = await fetch('/api/health');
+                    const data = await response.json();
+                    const uptime = this.formatUptime(data.uptime);
+                    document.getElementById('healthStatus').innerHTML = `
+                        <p><strong>Status:</strong> <span class="text-green-600">● ${data.status}</span></p>
+                        <p><strong>Uptime:</strong> ${uptime}</p>
+                        <p class="text-xs text-gray-500 mt-2">${new Date().toLocaleTimeString()}</p>
+                    `;
+                } catch (error) {
+                    document.getElementById('healthStatus').innerHTML = '<p class="text-red-600">Connection error</p>';
+                }
+            }
+
+            async loadItems() {
+                try {
+                    const response = await fetch('/api/items');
+                    const itemsDiv = document.getElementById('itemsList');
+                    
+                    if (response.ok) {
+                        const items = await response.json();
+                        itemsDiv.innerHTML = items.map(item => `
+                            <div class="bg-gray-50 p-4 rounded-md">
+                                <h3 class="font-semibold">${item.name}</h3>
+                                <p class="text-gray-600 text-sm">${item.description}</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        itemsDiv.innerHTML = `
+                            <div class="bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                                <p class="text-yellow-800">🔒 Login required to view this content</p>
+                                <a href="/auth/logto" class="text-blue-600 hover:underline text-sm mt-2 inline-block">Login now →</a>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Failed to load items:', error);
+                }
+            }
+
+            formatUptime(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+                
+                if (hours > 0) return `${hours}h ${minutes}m`;
+                if (minutes > 0) return `${minutes}m ${secs}s`;
+                return `${secs}s`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => new App());
+    </script>
+</body>
+</html>

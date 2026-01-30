@@ -1,0 +1,28 @@
+log2 OAuth Configuration Required
+=================================
+
+To enable authentication in your web app, please provide:
+
+1. log2 BASE DOMAIN
+   Example: https://log2.yourdomain.com
+   Your domain: ________________________________
+
+2. CLIENT CREDENTIALS (from log2 admin panel)
+   Client ID: ________________________________
+   Client Secret: ________________________________
+
+3. OAUTH ENDPOINTS (check log2 documentation)
+   Authorization URL: ________________________________
+   Token URL: ________________________________
+   User Info URL: ________________________________
+
+4. CALLBACK URL (register this in log2)
+   http://192.168.10.14:3000/auth/log2/callback
+
+Once you provide these, I will:
+- Update the .env file
+- Restart the server
+- Authentication will be fully functional
+
+The web app is running and waiting for configuration:
+http://192.168.10.14:3000

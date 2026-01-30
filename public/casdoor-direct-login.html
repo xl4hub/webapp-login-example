@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Casdoor Direct Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .login-container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .logo { text-align: center; margin-bottom: 30px; font-size: 36px; }
+        h2 { text-align: center; color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+        input[type="text"]:focus, input[type="password"]:focus { outline: none; border-color: #4CAF50; }
+        button { width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #45a049; }
+        .error { color: #e53e3e; margin-bottom: 15px; padding: 10px; background: #fee; border-radius: 4px; display: none; }
+        .info { background: #e3f2fd; color: #1976d2; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; }
+        .test-users { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666; }
+        .test-users h4 { margin-bottom: 10px; color: #333; }
+        .user-option { cursor: pointer; color: #4CAF50; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🛡️</div>
+        <h2>Casdoor Login</h2>
+        
+        <div class="info">
+            This is a direct login form for Casdoor OAuth authentication.
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <form id="loginForm" method="POST" action="http://192.168.10.14:8000/login">
+            <!-- OAuth parameters -->
+            <input type="hidden" name="type" value="code">
+            <input type="hidden" name="application" value="built-in/webapp">
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit">Sign In</button>
+        </form>
+        
+        <div class="test-users">
+            <h4>Test Users:</h4>
+            <p>Admin: <span class="user-option" onclick="fillCredentials('admin', '123')">admin / 123</span></p>
+            <p>Test User: <span class="user-option" onclick="fillCredentials('testuser', 'testpass123')">testuser / testpass123</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Get OAuth parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('client_id') || 'webapp-client';
+        const redirectUri = urlParams.get('redirect_uri') || 'http://192.168.10.14:3000/auth/casdoor/callback';
+        const state = urlParams.get('state') || '';
+        const scope = urlParams.get('scope') || 'openid profile email';
+
+        // Fill credentials helper
+        function fillCredentials(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+        }
+
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const username = formData.get('username');
+            const password = formData.get('password');
+            
+            try {
+                // First, try to authenticate with Casdoor API
+                const response = await fetch('http://192.168.10.14:8000/api/signin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        application: "built-in/webapp",
+                        organization: "built-in",
+                        username: username,
+                        password: password,
+                        autoSignin: true
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    // If login successful, redirect to OAuth authorize with session
+                    const authUrl = new URL('http://192.168.10.14:8000/login/oauth/authorize');
+                    authUrl.searchParams.append('response_type', 'code');
+                    authUrl.searchParams.append('client_id', clientId);
+                    authUrl.searchParams.append('redirect_uri', redirectUri);
+                    authUrl.searchParams.append('scope', scope);
+                    if (state) authUrl.searchParams.append('state', state);
+                    
+                    window.location.href = authUrl.toString();
+                } else {
+                    document.getElementById('error').textContent = result.msg || 'Login failed';
+                    document.getElementById('error').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('error').textContent = 'Connection error: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logto Server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <h1 class="text-4xl font-bold mb-4">🔐 Logto Server</h1>
+        <p class="text-gray-600 mb-8">Local OAuth2 Authentication Server</p>
+        
+        <div class="space-y-4 max-w-md mx-auto">
+            <a href="/admin" class="block bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">
+                Admin Console
+            </a>
+            <a href="/health" class="block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                Health Check
+            </a>
+        </div>
+        
+        <div class="mt-12 text-sm text-gray-500">
+            <p>OAuth Endpoints:</p>
+            <code class="block mt-2">/oauth/authorize | /oauth/token | /oauth/userinfo</code>
+        </div>
+    </div>
+</body>
+</html>
