@@ -1,0 +1,97 @@
+# Docker Compose optimized for Raspberry Pi
+# Lower memory limits and ARM-specific optimizations
+
+version: '3.8'
+
+services:
+  # Main web application
+  webapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDPLATFORM=linux/arm64
+        - TARGETPLATFORM=linux/arm64
+    container_name: webapp
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NODE_OPTIONS=--max-old-space-size=512
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-secret}
+      - OAUTH_AUTH_URL=http://auth-server:4000/oauth/authorize
+      - OAUTH_TOKEN_URL=http://auth-server:4000/oauth/token
+      - OAUTH_USERINFO_URL=http://auth-server:4000/oauth/userinfo
+      - OAUTH_CALLBACK_URL=http://localhost:3000/auth/callback
+    volumes:
+      - webapp-data:/app/data
+      - webapp-logs:/app/logs
+    depends_on:
+      - auth-server
+    networks:
+      - auth-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Custom OAuth2 server
+  auth-server:
+    build:
+      context: ./auth-server
+      dockerfile: Dockerfile
+      args:
+        - BUILDPLATFORM=linux/arm64
+        - TARGETPLATFORM=linux/arm64
+    container_name: auth-server
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - NODE_OPTIONS=--max-old-space-size=256
+    volumes:
+      - auth-data:/app/data
+    networks:
+      - auth-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Note: Casdoor and Logto might be too heavy for Pi
+  # Consider using only auth-server for authentication
+
+volumes:
+  webapp-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/usb/docker-volumes/webapp-data
+  webapp-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/usb/docker-volumes/webapp-logs
+  auth-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/usb/docker-volumes/auth-data
+
+networks:
+  auth-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

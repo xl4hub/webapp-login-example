@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Development
+*.log
+.DS_Store
+.vscode
+.idea
+
+# Build artifacts (we rebuild in Docker)
+dist
+build
+
+# Data (use volumes instead)
+data/
+*.db
+*.sqlite
+
+# Documentation
+*.md
+docs/
+LICENSE
+NOTICE
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts (not needed in container)
+scripts/
+*.sh
+
+# Temporary files
+tmp/
+temp/
+.tmp/

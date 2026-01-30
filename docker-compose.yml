@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # Main web application
+  webapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: webapp
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-secret}
+      # OAuth endpoints pointing to internal services
+      - OAUTH_AUTH_URL=http://auth-server:4000/oauth/authorize
+      - OAUTH_TOKEN_URL=http://auth-server:4000/oauth/token
+      - OAUTH_USERINFO_URL=http://auth-server:4000/oauth/userinfo
+      - OAUTH_CALLBACK_URL=http://localhost:3000/auth/callback
+      # External-facing URLs for redirects
+      - EXTERNAL_AUTH_URL=${EXTERNAL_URL:-http://localhost}:4000
+    volumes:
+      - webapp-data:/app/data
+      - webapp-logs:/app/logs
+    depends_on:
+      - auth-server
+    networks:
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Custom OAuth2 server
+  auth-server:
+    build:
+      context: ./auth-server
+      dockerfile: Dockerfile
+    container_name: auth-server
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    volumes:
+      - auth-data:/app/data
+    networks:
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Casdoor identity server (optional - comment out if not using)
+  casdoor:
+    image: casbin/casdoor:v1.541.0
+    container_name: casdoor
+    ports:
+      - "8000:8000"
+    environment:
+      - driverName=sqlite
+      - dataSourceName=file:/var/lib/casdoor/casdoor.db
+    volumes:
+      - casdoor-data:/var/lib/casdoor
+      - ./config/casdoor/app.conf:/conf/app.conf:ro
+    networks:
+      - auth-network
+    restart: unless-stopped
+
+  # Logto identity platform (optional - comment out if not using)
+  logto:
+    image: svhd/logto:1.12.0
+    container_name: logto
+    ports:
+      - "3001:3001"
+      - "3002:3002"  # Admin console
+    environment:
+      - TRUST_PROXY_HEADER=true
+      - DB_URL=sqlite:/data/logto.db
+      # Admin credentials
+      - LOGTO_ADMIN_USERNAME=admin
+      - LOGTO_ADMIN_PASSWORD=${LOGTO_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - logto-data:/data
+    networks:
+      - auth-network
+    restart: unless-stopped
+    depends_on:
+      - logto-db-init
+
+  # Initialize Logto database
+  logto-db-init:
+    image: svhd/logto:1.12.0
+    container_name: logto-db-init
+    command: database seed --db-url sqlite:/data/logto.db
+    volumes:
+      - logto-data:/data
+    networks:
+      - auth-network
+
+  # Nginx reverse proxy (optional - for production)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: nginx-proxy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./config/nginx:/etc/nginx/conf.d:ro
+  #     - nginx-certs:/etc/nginx/certs
+  #   depends_on:
+  #     - webapp
+  #     - auth-server
+  #   networks:
+  #     - auth-network
+  #   restart: unless-stopped
+
+volumes:
+  webapp-data:
+  webapp-logs:
+  auth-data:
+  casdoor-data:
+  logto-data:
+  nginx-certs:
+
+networks:
+  auth-network:
+    driver: bridge
