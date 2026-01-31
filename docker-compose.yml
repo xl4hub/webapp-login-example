@@ -20,6 +20,20 @@ services:
       - OAUTH_CALLBACK_URL=http://localhost:3000/auth/callback
       # External-facing URLs for redirects
       - EXTERNAL_AUTH_URL=${EXTERNAL_URL:-http://localhost}:4000
+      # Logto OAuth configuration
+      - LOGTO_CLIENT_ID=${LOGTO_CLIENT_ID}
+      - LOGTO_CLIENT_SECRET=${LOGTO_CLIENT_SECRET}
+      - LOGTO_AUTH_URL=${LOGTO_AUTH_URL}
+      - LOGTO_TOKEN_URL=${LOGTO_TOKEN_URL}
+      - LOGTO_USERINFO_URL=${LOGTO_USERINFO_URL}
+      - LOGTO_CALLBACK_URL=${LOGTO_CALLBACK_URL}
+      # Casdoor OAuth configuration
+      - CASDOOR_CLIENT_ID=${CASDOOR_CLIENT_ID}
+      - CASDOOR_CLIENT_SECRET=${CASDOOR_CLIENT_SECRET}
+      - CASDOOR_AUTH_URL=${CASDOOR_AUTH_URL}
+      - CASDOOR_TOKEN_URL=${CASDOOR_TOKEN_URL}
+      - CASDOOR_USERINFO_URL=${CASDOOR_USERINFO_URL}
+      - CASDOOR_CALLBACK_URL=${CASDOOR_CALLBACK_URL}
     volumes:
       - webapp-data:/app/data
       - webapp-logs:/app/logs
@@ -56,6 +70,26 @@ services:
       timeout: 10s
       retries: 3
 
+  # MySQL for Casdoor
+  casdoor-mysql:
+    image: mysql:8.0
+    container_name: casdoor-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${CASDOOR_DB_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: casdoor
+      MYSQL_USER: casdoor
+      MYSQL_PASSWORD: ${CASDOOR_DB_PASSWORD:-casdoor_password}
+    volumes:
+      - casdoor-mysql-data:/var/lib/mysql
+    networks:
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${CASDOOR_DB_ROOT_PASSWORD:-root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Casdoor identity server (optional - comment out if not using)
   casdoor:
     image: casbin/casdoor:v1.541.0
@@ -63,45 +97,66 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - driverName=sqlite
-      - dataSourceName=file:/var/lib/casdoor/casdoor.db
+      - RUNNING_IN_DOCKER=true
     volumes:
-      - casdoor-data:/var/lib/casdoor
       - ./config/casdoor/app.conf:/conf/app.conf:ro
     networks:
       - auth-network
     restart: unless-stopped
+    depends_on:
+      casdoor-mysql:
+        condition: service_healthy
+
+  # PostgreSQL for Logto
+  logto-postgres:
+    image: postgres:15-alpine
+    container_name: logto-postgres
+    environment:
+      POSTGRES_USER: logto
+      POSTGRES_PASSWORD: ${LOGTO_DB_PASSWORD:-logto_password}
+      POSTGRES_DB: logto
+    volumes:
+      - logto-postgres-data:/var/lib/postgresql/data
+    networks:
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logto -d logto"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Logto identity platform (optional - comment out if not using)
   logto:
-    image: svhd/logto:1.12.0
+    image: svhd/logto:1.22.0
     container_name: logto
     ports:
       - "3001:3001"
       - "3002:3002"  # Admin console
     environment:
       - TRUST_PROXY_HEADER=true
-      - DB_URL=sqlite:/data/logto.db
-      # Admin credentials
-      - LOGTO_ADMIN_USERNAME=admin
-      - LOGTO_ADMIN_PASSWORD=${LOGTO_ADMIN_PASSWORD:-admin123}
-    volumes:
-      - logto-data:/data
+      - DB_URL=postgresql://logto:${LOGTO_DB_PASSWORD:-logto_password}@logto-postgres:5432/logto
+      - ENDPOINT=http://localhost:3001
+      - ADMIN_ENDPOINT=http://localhost:3002
     networks:
       - auth-network
     restart: unless-stopped
     depends_on:
-      - logto-db-init
+      logto-postgres:
+        condition: service_healthy
 
-  # Initialize Logto database
+  # Initialize Logto database (runs once)
   logto-db-init:
-    image: svhd/logto:1.12.0
+    image: svhd/logto:1.22.0
     container_name: logto-db-init
-    command: database seed --db-url sqlite:/data/logto.db
-    volumes:
-      - logto-data:/data
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm run cli db alteration deploy latest"]
+    environment:
+      - DB_URL=postgresql://logto:${LOGTO_DB_PASSWORD:-logto_password}@logto-postgres:5432/logto
     networks:
       - auth-network
+    depends_on:
+      logto-postgres:
+        condition: service_healthy
 
   # Nginx reverse proxy (optional - for production)
   # nginx:
@@ -124,8 +179,8 @@ volumes:
   webapp-data:
   webapp-logs:
   auth-data:
-  casdoor-data:
-  logto-data:
+  casdoor-mysql-data:
+  logto-postgres-data:
   nginx-certs:
 
 networks:
