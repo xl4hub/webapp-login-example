@@ -100,6 +100,7 @@ services:
       - RUNNING_IN_DOCKER=true
     volumes:
       - ./config/casdoor/app.conf:/conf/app.conf:ro
+      - ./config/casdoor/init_data.json:/conf/init_data.json:ro
     networks:
       - auth-network
     restart: unless-stopped
@@ -157,6 +158,22 @@ services:
     depends_on:
       logto-postgres:
         condition: service_healthy
+
+  # Logto seed script (creates webapp application and excelfore user)
+  logto-seed:
+    image: node:18-alpine
+    container_name: logto-seed
+    volumes:
+      - ./config/logto/seed.js:/app/seed.js:ro
+    working_dir: /app
+    command: ["node", "seed.js"]
+    environment:
+      - LOGTO_ENDPOINT=http://logto:3001
+    networks:
+      - auth-network
+    depends_on:
+      - logto
+    restart: "no"
 
   # Nginx reverse proxy (optional - for production)
   # nginx:
