@@ -17,11 +17,17 @@ Access the application at:
 - **Logto Admin**: http://localhost:3002
 - **Casdoor Admin**: http://localhost:8000
 
-## Default Login
+## Default Credentials
 
+### Test User Login
 Both Logto and Casdoor are pre-configured with a test user:
 - **Username**: `excelfore`
 - **Password**: `Excelfore32!`
+
+### Admin Consoles
+Both admin consoles use the same credentials:
+- **Username**: `admin`
+- **Password**: `admin`
 
 ## Services
 
