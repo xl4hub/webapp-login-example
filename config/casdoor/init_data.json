@@ -46,9 +46,7 @@
       "samlReplyUrl": "",
       "clientId": "webapp-casdoor-client",
       "clientSecret": "webapp-casdoor-secret-key-12345",
-      "redirectUris": [
-        "http://localhost:3000/auth/casdoor/callback"
-      ],
+      "redirectUris": ["http://localhost:3000/auth/casdoor/callback"],
       "tokenFormat": "JWT",
       "tokenFields": [],
       "expireInHours": 168,
@@ -81,7 +79,7 @@
       "updatedTime": "2024-01-01T00:00:00Z",
       "id": "excelfore-user-001",
       "type": "normal-user",
-      "password": "excelfore32!",
+      "password": "Excelfore32!",
       "passwordSalt": "",
       "passwordType": "plain",
       "displayName": "Excelfore User",

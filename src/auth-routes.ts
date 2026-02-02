@@ -55,11 +55,31 @@ function requireStrategy(strategyName: string, providerDisplayName: string) {
 
 // Logout
 router.get('/logout', (req, res) => {
+  const provider = (req.session as any)?.authProvider;
+
   req.logout((err) => {
     if (err) {
       console.error('Logout error:', err);
     }
-    res.redirect('/');
+
+    // Clear session completely
+    req.session.destroy((sessionErr) => {
+      if (sessionErr) {
+        console.error('Session destroy error:', sessionErr);
+      }
+
+      // Redirect to provider's logout endpoint to end their session too
+      if (provider === 'logto') {
+        const clientId = process.env.LOGTO_CLIENT_ID || '';
+        const postLogoutUri = encodeURIComponent('http://localhost:3000/');
+        res.redirect(`http://localhost:3001/oidc/session/end?client_id=${clientId}&post_logout_redirect_uri=${postLogoutUri}`);
+      } else if (provider === 'casdoor') {
+        // Casdoor logout - just redirect home since Casdoor doesn't have a clean session end
+        res.redirect('/');
+      } else {
+        res.redirect('/');
+      }
+    });
   });
 });
 
@@ -77,7 +97,8 @@ router.get('/auth/logto/callback',
     failureRedirect: '/login?error=auth_failed'
   }),
   (req, res) => {
-    // Successful authentication - redirect back to home
+    // Store auth provider for logout
+    (req.session as any).authProvider = 'logto';
     res.redirect('/');
   }
 );
@@ -96,7 +117,8 @@ router.get('/auth/casdoor/callback',
     failureRedirect: '/login?error=auth_failed'
   }),
   (req, res) => {
-    // Successful authentication - redirect back to home
+    // Store auth provider for logout
+    (req.session as any).authProvider = 'casdoor';
     res.redirect('/');
   }
 );

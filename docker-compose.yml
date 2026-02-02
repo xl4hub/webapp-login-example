@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   # Main web application
   webapp:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: webapp
@@ -13,13 +11,6 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - SESSION_SECRET=${SESSION_SECRET:-change-this-secret}
-      # OAuth endpoints pointing to internal services
-      - OAUTH_AUTH_URL=http://auth-server:4000/oauth/authorize
-      - OAUTH_TOKEN_URL=http://auth-server:4000/oauth/token
-      - OAUTH_USERINFO_URL=http://auth-server:4000/oauth/userinfo
-      - OAUTH_CALLBACK_URL=http://localhost:3000/auth/callback
-      # External-facing URLs for redirects
-      - EXTERNAL_AUTH_URL=${EXTERNAL_URL:-http://localhost}:4000
       # Logto OAuth configuration
       - LOGTO_CLIENT_ID=${LOGTO_CLIENT_ID}
       - LOGTO_CLIENT_SECRET=${LOGTO_CLIENT_SECRET}
@@ -38,34 +29,15 @@ services:
       - webapp-data:/app/data
       - webapp-logs:/app/logs
     depends_on:
-      - auth-server
+      casdoor:
+        condition: service_started
+      logto:
+        condition: service_started
     networks:
       - auth-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Custom OAuth2 server
-  auth-server:
-    build:
-      context: ./auth-server
-      dockerfile: Dockerfile
-    container_name: auth-server
-    ports:
-      - "4000:4000"
-    environment:
-      - NODE_ENV=production
-      - PORT=4000
-    volumes:
-      - auth-data:/app/data
-    networks:
-      - auth-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -90,7 +62,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Casdoor identity server (optional - comment out if not using)
+  # Casdoor identity server
   casdoor:
     image: casbin/casdoor:v1.541.0
     container_name: casdoor
@@ -127,13 +99,13 @@ services:
       timeout: 5s
       retries: 5
 
-  # Logto identity platform (optional - comment out if not using)
+  # Logto identity platform
   logto:
     image: svhd/logto:1.22.0
     container_name: logto
     ports:
       - "3001:3001"
-      - "3002:3002"  # Admin console
+      - "3002:3002"
     environment:
       - TRUST_PROXY_HEADER=true
       - DB_URL=postgresql://logto:${LOGTO_DB_PASSWORD:-logto_password}@logto-postgres:5432/logto
@@ -175,30 +147,11 @@ services:
       - logto
     restart: "no"
 
-  # Nginx reverse proxy (optional - for production)
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: nginx-proxy
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./config/nginx:/etc/nginx/conf.d:ro
-  #     - nginx-certs:/etc/nginx/certs
-  #   depends_on:
-  #     - webapp
-  #     - auth-server
-  #   networks:
-  #     - auth-network
-  #   restart: unless-stopped
-
 volumes:
   webapp-data:
   webapp-logs:
-  auth-data:
   casdoor-mysql-data:
   logto-postgres-data:
-  nginx-certs:
 
 networks:
   auth-network:
